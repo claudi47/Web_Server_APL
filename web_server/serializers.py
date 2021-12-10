@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from web_server.models import BetData, User
+from web_server.models import BetData, User, Search
+
 
 # A Serializer is an object that permits to define the shape of a request/response sent by a client/server.
 # Serializers allow complex data such as querysets and model instances to be converted to native Python datatypes
@@ -9,9 +10,14 @@ class BetDataSerializer(serializers.ModelSerializer): # extension of the class M
     # This class is necessary to Django REST framework to initialize the Serializer
     class Meta:
         model = BetData
-        fields = ['id', 'web_site', 'date', 'match', 'one', 'ics', 'two', 'gol', 'over', 'under']
+        fields = ['id', 'web_site', 'date', 'match', 'one', 'ics', 'two', 'gol', 'over', 'under', 'search_id']
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'user_id']
+        fields = ['id', 'username', 'user_identifier']
+
+class SearchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Search
+        fields = ['id', 'csv_url', 'user_id']

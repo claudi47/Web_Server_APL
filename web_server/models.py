@@ -17,7 +17,7 @@ class BetData(models.Model):
     web_site = models.CharField(max_length=127)
     timestamp = models.DateTimeField(auto_now_add=True)
 
-    # user = models.ForeignKey('User', on_delete=models.CASCADE)
+    search_id = models.ForeignKey('Search', on_delete=models.CASCADE)
 
     # endregion
 
@@ -25,7 +25,13 @@ class BetData(models.Model):
 class User(models.Model):
     # region Declaration of the User's fields
     username = models.CharField(max_length=127)
-    user_id = models.CharField(max_length=127)
+    user_identifier = models.CharField(max_length=127, primary_key=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     # endregion
+
+class Search(models.Model):
+    csv_url = models.URLField(max_length=255)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    user_id = models.ForeignKey('User', on_delete=models.CASCADE)
