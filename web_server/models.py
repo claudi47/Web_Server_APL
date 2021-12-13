@@ -3,9 +3,23 @@ from django.db import models
 # In Django, a model defines the structure of DB table
 # models.py is where we define our database models which Django automatically transaltes into database tables
 # Create your models here.
-class BetData(models.Model):
-    # region Declaration of BetData's fields
+class User(models.Model):
     # models is a package, <Type>Field indicates the type of field
+    username = models.CharField(max_length=127)
+    user_identifier = models.CharField(max_length=127, primary_key=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+
+class Search(models.Model):
+    # the 'blank' option is used to specify that, initially, the field can be empty
+    csv_url = models.CharField(max_length=255, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    # the related_name represents the Primary Key for the one-to-many relation
+    user = models.ForeignKey(User, related_name='searches', on_delete=models.CASCADE)
+
+
+class BetData(models.Model):
     date = models.CharField(max_length=127)
     match = models.CharField(max_length=127)
     one = models.CharField(max_length=127)
@@ -17,21 +31,5 @@ class BetData(models.Model):
     web_site = models.CharField(max_length=127)
     timestamp = models.DateTimeField(auto_now_add=True)
 
-    search_id = models.ForeignKey('Search', on_delete=models.CASCADE)
+    search = models.ForeignKey(Search, related_name='bet_data', on_delete=models.CASCADE)
 
-    # endregion
-
-
-class User(models.Model):
-    # region Declaration of the User's fields
-    username = models.CharField(max_length=127)
-    user_identifier = models.CharField(max_length=127, primary_key=True)
-    timestamp = models.DateTimeField(auto_now_add=True)
-
-    # endregion
-
-class Search(models.Model):
-    csv_url = models.URLField(max_length=255)
-    timestamp = models.DateTimeField(auto_now_add=True)
-
-    user_id = models.ForeignKey('User', on_delete=models.CASCADE)

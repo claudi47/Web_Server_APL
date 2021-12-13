@@ -10,14 +10,19 @@ class BetDataSerializer(serializers.ModelSerializer): # extension of the class M
     # This class is necessary to Django REST framework to initialize the Serializer
     class Meta:
         model = BetData
-        fields = ['id', 'web_site', 'date', 'match', 'one', 'ics', 'two', 'gol', 'over', 'under', 'search_id']
+        fields = ['id', 'web_site', 'date', 'match', 'one', 'ics', 'two', 'gol', 'over', 'under', 'search']
 
 class UserSerializer(serializers.ModelSerializer):
+    # Creation of a property (read-only type [NO PERSISTENCE ON THE DB]) to define a relation one-to-many
+    searches = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'user_identifier']
+        fields = ['username', 'user_identifier', 'searches']
 
 class SearchSerializer(serializers.ModelSerializer):
+    bet_data = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+
     class Meta:
         model = Search
-        fields = ['id', 'csv_url', 'user_id']
+        fields = ['id', 'csv_url', 'user', 'bet_data']
