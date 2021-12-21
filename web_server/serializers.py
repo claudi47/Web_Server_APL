@@ -1,5 +1,7 @@
+from abc import ABC
+
 from rest_framework import serializers
-from web_server.models import BetData, User, Search
+from web_server.models import BetData, User, Search, Settings
 
 
 # A Serializer is an object that permits to define the shape of a request/response sent by a client/server.
@@ -18,7 +20,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'user_identifier', 'searches']
+        fields = ['username', 'user_identifier', 'searches', 'max_research', 'ban_period']
 
 class SearchSerializer(serializers.ModelSerializer):
     bet_data = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
@@ -26,3 +28,24 @@ class SearchSerializer(serializers.ModelSerializer):
     class Meta:
         model = Search
         fields = ['id', 'csv_url', 'user', 'bet_data']
+
+class SettingsSearializer(serializers.ModelSerializer):
+    class Meta:
+        model = Settings
+        fields = ['goldbet_research', 'bwin_research']
+
+class SettingsDataSerializer(serializers.Serializer):
+    def update(self, instance, validated_data):
+        raise NotImplementedError
+
+    def create(self, validated_data):
+        raise NotImplementedError
+
+    max_researches = serializers.IntegerField()
+    bool_for_all = serializers.BooleanField()
+    username_research = serializers.CharField(max_length=64)
+    user_suspended = serializers.CharField(max_length=64)
+    period_of_suspension = serializers.DateTimeField()
+    bool_toggle_godlbet = serializers.BooleanField()
+    bool_toggle_bwin = serializers.BooleanField()
+

@@ -6,6 +6,7 @@ djangorestframework==3.12.4
 idna==3.3
 pytz==2021.3
 requests==2.26.0
-sqlparse==0.4.2
+sqlparse==0.2.4
 urllib3==1.26.7
 apscheduler==3.8.1
+pymongo[srv]<4.0.0

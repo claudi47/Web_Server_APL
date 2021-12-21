@@ -7,6 +7,10 @@ class User(models.Model):
     # models is a package, <Type>Field indicates the type of field
     username = models.CharField(max_length=127)
     user_identifier = models.CharField(max_length=127, primary_key=True)
+
+    max_research = models.IntegerField(default=-1)
+    ban_period = models.DateTimeField(null=True)
+
     timestamp = models.DateTimeField(auto_now_add=True)
 
 
@@ -33,3 +37,7 @@ class BetData(models.Model):
 
     search = models.ForeignKey(Search, related_name='bet_data', on_delete=models.CASCADE)
 
+class Settings(models.Model):
+    goldbet_research = models.BooleanField(default=True)
+    bwin_research = models.BooleanField(default=True)
+    

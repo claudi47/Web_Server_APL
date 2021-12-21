@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -78,6 +78,13 @@ WSGI_APPLICATION = 'Web_Server_APL.wsgi.application'
 
 DATABASES = {
     'default': {
+        'ENGINE': 'djongo',
+        'NAME': 'db_apl',
+        'CLIENT': {
+            'host': f'mongodb+srv://claudi47:{os.getenv("mongodb_Password")}@apldb.hhz9g.mongodb.net/db_apl?retryWrites=true&w=majority',
+        }
+    },
+    'alternative': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
