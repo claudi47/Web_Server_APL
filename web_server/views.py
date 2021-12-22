@@ -36,10 +36,14 @@ def bet_data_view(request):
         if search.is_valid():
             search_instance = search.save()
             # Initiating relaxed compensating transaction (after 20 seconds)
+            # misfire_grace_time is the time where the task can continue to run after the end of the deadline
+            # If during a research the server shuts down and restarts, the replace_existing param allows to replace
+            # the previous job whit the same ID
             transaction_scheduler.add_job(rollback_function, 'date',
                                           run_date=datetime.datetime.now() + datetime.timedelta(seconds=20),
                                           args=[search_instance.pk],
-                                          id=str(search_instance.pk), misfire_grace_time=3600)
+                                          id=str(search_instance.pk), misfire_grace_time=3600,
+                                          replace_existing=True)
             bet_data_list = request.data['data']
             for element in bet_data_list:
                 # **element passes the entire content of the dictionary where bet_data are present

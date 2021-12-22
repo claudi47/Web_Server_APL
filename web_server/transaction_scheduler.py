@@ -1,9 +1,9 @@
 import datetime
-
+from web_server.job_stores import job_stores
 from apscheduler.schedulers.background import BackgroundScheduler
 
 # Declaration of a scheduler that will manage a queue of tasks, useful for managing transactions
-transaction_scheduler = BackgroundScheduler()
+transaction_scheduler = BackgroundScheduler(jobstores=job_stores)
 
 
 def init_scheduler():
@@ -30,6 +30,8 @@ def repeat_n_times_until_success(transaction, count, *args, reschedule_count=0,
         except Exception as ex:
             counter += 1
 
+    # this condition, when the param is > 0, allows to repeat this function (repeat...) after 5 seconds
+    # a "reschedule_count" times or always (only if always reschedule is true)
     if reschedule_count > 0:
         transaction_scheduler.add_job(repeat_n_times_until_success, 'date',
                                       run_date=datetime.datetime.now() + datetime.timedelta(seconds=5),
