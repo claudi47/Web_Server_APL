@@ -150,3 +150,31 @@ def settings_view(request):
                                                                                                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
         return Response(settings_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def validation_view(request):
+    user_id = request.query_params['user_id']
+    website = request.query_params['website']
+    user_model = User.objects.get(pk=user_id)
+
+    banned = user_model.ban_period
+    if banned is not None:
+        if banned >= datetime.datetime.now():
+            return Response('banned')
+
+    researches_threshold = user_model.max_research
+    researches_count = user_model.searches.count()
+
+    if researches_count >= researches_threshold:
+        return Response('max_research')
+
+    if website == 'goldbet':
+        is_enabled = Settings.objects.get(pk=1).goldbet_research
+        if not is_enabled:
+            return Response("disabled")
+    elif website == 'bwin':
+        is_enabled = Settings.objects.get(pk=1).bwin_research
+        if not is_enabled:
+            return Response("disabled")
+
+    return Response('bravo')
