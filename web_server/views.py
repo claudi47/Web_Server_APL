@@ -2,7 +2,11 @@ import datetime
 
 import requests
 from apscheduler.jobstores.base import JobLookupError
+from django.db import connections
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from django.http import HttpResponse
+from pymongo.database import Database
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -10,17 +14,30 @@ from rest_framework.response import Response
 from web_server.models import Search, BetData, User, Settings
 from web_server.serializers import UserSerializer, SearchSerializer, BetDataSerializer, SettingsDataSerializer
 from web_server.setting_category import GENERAL
-from web_server.transaction_scheduler import transaction_scheduler, repeat_n_times_until_success
+from web_server.transaction_scheduler import transaction_scheduler, repeat_deco
 
 
+@repeat_deco(3, reschedule_count=3, always_reschedule=True)
 def rollback_function(search_id):
     # this is a query where we select the rows with that search_id and after we delete them
     BetData.objects.filter(search=search_id).delete()
-    Search.objects.get(pk=search_id).delete()  # delete of entry search with that primary key
+    Search.objects.filter(pk=search_id).delete()  # delete of entry search with that primary key
 
 
 # In Django, a view determines the content of a web page
 # views.py is where we handle the request/response logic of our web server
+
+@receiver(pre_save, sender=Search)
+def on_search_data_save(sender, **kwargs):
+    mongo_db: Database = connections['default'].connection
+    doc = mongo_db['__schema__'].find_one(filter={'name': 'web_server_search'})
+    next_seq = doc['auto']['seq'] + 1
+    transaction_scheduler.add_job(rollback_function, 'date',
+                                  run_date=datetime.datetime.now() + datetime.timedelta(seconds=20),
+                                  args=[next_seq],
+                                  id=str(next_seq), misfire_grace_time=3600,
+                                  replace_existing=True)
+
 
 @api_view(['POST'])  # returns a decorator that transforms the function in a APIView REST class
 def bet_data_view(request):
@@ -39,11 +56,7 @@ def bet_data_view(request):
             # misfire_grace_time is the time where the task can continue to run after the end of the deadline
             # If during a research the server shuts down and restarts, the replace_existing param allows to replace
             # the previous job whit the same ID
-            transaction_scheduler.add_job(rollback_function, 'date',
-                                          run_date=datetime.datetime.now() + datetime.timedelta(seconds=20),
-                                          args=[search_instance.pk],
-                                          id=str(search_instance.pk), misfire_grace_time=3600,
-                                          replace_existing=True)
+
             bet_data_list = request.data['data']
             for element in bet_data_list:
                 # **element passes the entire content of the dictionary where bet_data are present
@@ -51,15 +64,19 @@ def bet_data_view(request):
                 if bet_data.is_valid():
                     bet_data.save()
                 else:
-                    if repeat_n_times_until_success(rollback_function, 3, search_instance.pk):
+                    try:
+                        rollback_function(search_instance.pk)
                         transaction_scheduler.remove_job(job_id=str(search_instance.pk))
-                    return Response('Error!', status=status.HTTP_400_BAD_REQUEST)
+                    finally:
+                        return Response('Error!', status=status.HTTP_400_BAD_REQUEST)
 
             response_from_cpp = requests.post("http://localhost:3000", json=bet_data_list)
             if not response_from_cpp.ok:
-                if repeat_n_times_until_success(rollback_function, 3, search_instance.pk):
+                try:
+                    rollback_function(search_instance.pk)
                     transaction_scheduler.remove_job(job_id=str(search_instance.pk))
-                return Response('Error!', status=status.HTTP_400_BAD_REQUEST)
+                finally:
+                    return Response('Error!', status=status.HTTP_400_BAD_REQUEST)
             else:
                 associated_search_data = {'search_id': search_instance.pk, 'filename': response_from_cpp.text}
                 # Adds the given job to the job list and wakes up the scheduler if it's already running.
@@ -72,8 +89,9 @@ def bet_data_view(request):
     except Exception as ex:
         try:
             search_instance.pk
-            if repeat_n_times_until_success(rollback_function, 3, search_instance.pk):
-                transaction_scheduler.remove_job(job_id=str(search_instance.pk))
+
+            rollback_function(search_instance.pk)
+            transaction_scheduler.remove_job(job_id=str(search_instance.pk))
         except:
             pass
 
@@ -112,6 +130,7 @@ def stats_view(request):
 def settings_view(request):
     settings_serializer = SettingsDataSerializer(data=request.data)
     if settings_serializer.is_valid():
+        @repeat_deco(3)
         def transaction_to_repeat():
             if settings_serializer.data['max_researches'] is not None:
                 if settings_serializer.data['bool_for_all'] is True:
@@ -145,7 +164,7 @@ def settings_view(request):
             updated_settings.bwin_research = settings_serializer.data['bool_toggle_bwin']
             updated_settings.save()
 
-        transaction_result = repeat_n_times_until_success(transaction_to_repeat, 3)
+        transaction_result = transaction_to_repeat()
         return Response("Success!", status=status.HTTP_200_OK) if transaction_result else Response("Transaction error!",
                                                                                                    status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
