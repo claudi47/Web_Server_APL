@@ -81,7 +81,7 @@ DATABASES = {
         'ENGINE': 'djongo',
         'NAME': 'db_apl',
         'CLIENT': {
-            'host': f'mongodb+srv://claudi47:{os.getenv("mongodb_Password")}@apldb.hhz9g.mongodb.net/db_apl?retryWrites=true&w=majority',
+            'host': f'mongodb+srv://lauralex:coccode@apldb.hhz9g.mongodb.net/db_apl?retryWrites=true&w=majority',
         }
     },
     'alternative': {

@@ -1,6 +1,9 @@
 import datetime
-from web_server.job_stores import job_stores
+import functools
+
 from apscheduler.schedulers.background import BackgroundScheduler
+
+from web_server.job_stores import job_stores
 
 # Declaration of a scheduler that will manage a queue of tasks, useful for managing transactions
 transaction_scheduler = BackgroundScheduler(jobstores=job_stores)
@@ -10,33 +13,29 @@ def init_scheduler():
     transaction_scheduler.start()
 
 
-def repeat_n_times_until_success(transaction, count, *args, reschedule_count=0,
-                                 always_reschedule=False):
-    """
-    Schedule a function to ensure execution
+def repeat_deco(repeat_count, reschedule_count=0, always_reschedule=False):
+    def deco_wrapper(func):
+        @functools.wraps(func)
+        def func_wrapper(trans_id, *args, **kwargs):
+            counter = 0
+            while counter < repeat_count:
+                try:
+                    return func(trans_id, *args, **kwargs)
+                except:
+                    counter += 1
+            if func_wrapper.reschedule_count > 0:
+                if not always_reschedule:
+                    func_wrapper.reschedule_count -= 1
+                transaction_scheduler.add_job(func_wrapper,
+                                              id=str(trans_id),
+                                              run_date=datetime.datetime.now() + datetime.timedelta(seconds=5),
+                                              args=[trans_id, *args], kwargs=kwargs, replace_existing=True, misfire_grace_time=3600)
 
-    @param transaction: the function to be executed
-    @param count: number of times to for retry
-    @param args: arguments to pass to the function
-    @param reschedule_count: number of times to reschedule (ignored if always_reschedule is True)
-    @param always_reschedule: if True, the function will be executed every time until success
-    @return: True if the function is successfully executed, False otherwise
-    """
-    counter = 0
-    while counter < count:
-        try:
-            transaction(*args)
-            return True
-        except Exception as ex:
-            counter += 1
+            raise Exception(f'Failed execution in function: {func.__name__!r}')
 
-    # this condition, when the param is > 0, allows to repeat this function (repeat...) after 5 seconds
-    # a "reschedule_count" times or always (only if always reschedule is true)
-    if reschedule_count > 0:
-        transaction_scheduler.add_job(repeat_n_times_until_success, 'date',
-                                      run_date=datetime.datetime.now() + datetime.timedelta(seconds=5),
-                                      args=[transaction, count, *args],
-                                      kwargs={
-                                          'reschedule_count': reschedule_count - 1 if not always_reschedule else reschedule_count,
-                                          'always_reschedule': always_reschedule})
-    return False
+        func_wrapper.reschedule_count = reschedule_count
+        return func_wrapper
+
+    return deco_wrapper
+
+
