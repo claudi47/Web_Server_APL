@@ -8,5 +8,5 @@ urlpatterns = [
     path('csv/', url_csv_view),
     path('stats/', stats_view),
     path('settings/', settings_view),
-    path('validation', validation_view)
+    path('validation/', validation_view)
 ]

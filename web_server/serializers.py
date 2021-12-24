@@ -12,7 +12,7 @@ class BetDataSerializer(serializers.ModelSerializer):  # extension of the class 
     # This class is necessary to Django REST framework to initialize the Serializer
     class Meta:
         model = BetData
-        fields = ['id', 'web_site', 'date', 'match', 'one', 'ics', 'two', 'gol', 'over', 'under', 'search']
+        fields = ['id', 'date', 'match', 'one', 'ics', 'two', 'gol', 'over', 'under', 'search']
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -29,7 +29,7 @@ class SearchSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Search
-        fields = ['id', 'csv_url', 'user', 'bet_data']
+        fields = ['id', 'csv_url', 'user', 'web_site', 'bet_data']
 
 
 class SettingsSearializer(serializers.ModelSerializer):

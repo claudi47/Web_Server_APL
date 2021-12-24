@@ -3,6 +3,7 @@ import datetime
 import requests
 from apscheduler.jobstores.base import JobLookupError
 from django.http import HttpResponse
+from pytz import utc
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -26,13 +27,14 @@ def rollback_function(search_id):
 def bet_data_view(request):
     user_identifier = request.data['user_id']
     username = request.data['username']
+    web_site = request.data['web_site']
     try:
         user = UserSerializer(data={'username': username, 'user_identifier': user_identifier})
         if user.is_valid():  # verifies if the user is already created
             user.save()
 
         csv_url = ''
-        search = SearchSerializer(data={'csv_url': csv_url, 'user': user_identifier})
+        search = SearchSerializer(data={'csv_url': csv_url, 'user': user_identifier, 'web_site': web_site})
         if search.is_valid():
             search_instance = search.save()
             # Initiating relaxed compensating transaction (after 20 seconds)
@@ -105,6 +107,21 @@ def stats_view(request):
             if not stat_from_cpp.ok:
                 return Response('Bad Response from CPP', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             return HttpResponse(stat_from_cpp.text, status=status.HTTP_200_OK)
+        case "2":
+            stat_from_cpp = requests.get("http://localhost:3000/stats?stat=2")
+            if not stat_from_cpp.ok:
+                return Response('Bad Response from CPP', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return HttpResponse(stat_from_cpp.text, status=status.HTTP_200_OK)
+        case "3":
+            stat_from_cpp = requests.get("http://localhost:3000/stats?stat=3")
+            if not stat_from_cpp.ok:
+                return Response('Bad Response from CPP', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return HttpResponse(stat_from_cpp.text, status=status.HTTP_200_OK)
+        case "4":
+            stat_from_cpp = requests.get("http://localhost:3000/stats?stat=4")
+            if not stat_from_cpp.ok:
+                return Response('Bad Response from CPP', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return HttpResponse(stat_from_cpp.text, status=status.HTTP_200_OK)
     return Response("wow", status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -159,7 +176,8 @@ def validation_view(request):
 
     banned = user_model.ban_period
     if banned is not None:
-        if banned >= datetime.datetime.now():
+        banned = banned.replace(tzinfo=utc)
+        if banned >= datetime.datetime.now().replace(tzinfo=utc):
             return Response('banned')
 
     researches_threshold = user_model.max_research

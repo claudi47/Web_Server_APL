@@ -17,6 +17,7 @@ class User(models.Model):
 class Search(models.Model):
     # the 'blank' option is used to specify that, initially, the field can be empty
     csv_url = models.CharField(max_length=255, blank=True)
+    web_site = models.CharField(max_length=127)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     # the related_name represents the Primary Key for the one-to-many relation
@@ -32,7 +33,6 @@ class BetData(models.Model):
     gol = models.CharField(max_length=127)
     over = models.CharField(max_length=127)
     under = models.CharField(max_length=127)
-    web_site = models.CharField(max_length=127)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     search = models.ForeignKey(Search, related_name='bet_data', on_delete=models.CASCADE)
