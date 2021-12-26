@@ -19,6 +19,8 @@ def init_scheduler():
 
 def repeat_deco(repeat_count, reschedule_count=0, always_reschedule=False):
     def deco_wrapper(func):
+        # this notation is copying the information (name, docstring, ecc.) of the original function to the
+        # function wrapper
         @functools.wraps(func)
         def func_wrapper(trans_id=None, *args, **kwargs):  # Here, we added the default parameter 'trans_id'
             counter = 0

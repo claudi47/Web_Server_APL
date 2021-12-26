@@ -38,6 +38,7 @@ def bet_data_view(request):
         search = SearchSerializer(data={'csv_url': csv_url, 'user': user_identifier, 'web_site': web_site})
         if search.is_valid():
             search_instance = search.save()
+            # Adds the given job to the job list and wakes up the scheduler if it's already running.
             # Initiating relaxed compensating transaction (after 20 seconds)
             # misfire_grace_time is the time where the task can continue to run after the end of the deadline
             # If during a research the server shuts down and restarts, the replace_existing param allows to replace
@@ -72,10 +73,6 @@ def bet_data_view(request):
                     return Response('Error!', status=status.HTTP_400_BAD_REQUEST)
             else:
                 associated_search_data = {'search_id': search_instance.pk, 'filename': response_from_cpp.text}
-                # Adds the given job to the job list and wakes up the scheduler if it's already running.
-                # params: 1) function to be scheduled, 2) 'date' is the trigger type that indicates when the job must be
-                # executed, 3) args are the params to pass to the 1), 4) id assigned to the job
-                # The previous compensating transaction is rescheduled to 5 seconds
                 transaction_scheduler.reschedule_job(job_id=str(search_instance.pk), trigger='date',
                                                      run_date=datetime.datetime.now() + datetime.timedelta(seconds=5))
                 return Response(associated_search_data, status=status.HTTP_200_OK)
