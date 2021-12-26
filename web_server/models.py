@@ -27,12 +27,12 @@ class Search(models.Model):
 class BetData(models.Model):
     date = models.CharField(max_length=127)
     match = models.CharField(max_length=127)
-    one = models.CharField(max_length=127)
-    ics = models.CharField(max_length=127)
-    two = models.CharField(max_length=127)
-    gol = models.CharField(max_length=127)
-    over = models.CharField(max_length=127)
-    under = models.CharField(max_length=127)
+    one = models.CharField(max_length=127, blank=True)
+    ics = models.CharField(max_length=127, blank=True)
+    two = models.CharField(max_length=127, blank=True)
+    gol = models.CharField(max_length=127, blank=True)
+    over = models.CharField(max_length=127, blank=True)
+    under = models.CharField(max_length=127, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     search = models.ForeignKey(Search, related_name='bet_data', on_delete=models.CASCADE)

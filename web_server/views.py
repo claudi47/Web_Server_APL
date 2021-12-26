@@ -112,22 +112,22 @@ def stats_view(request):
             stat_from_cpp = requests.get("http://localhost:3000/stats?stat=1")
             if not stat_from_cpp.ok:
                 return Response('Bad Response from CPP', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            return HttpResponse(stat_from_cpp.text, status=status.HTTP_200_OK)
+            return HttpResponse(stat_from_cpp.text, status=status.HTTP_200_OK,content_type="application/json")
         case "2":
             stat_from_cpp = requests.get("http://localhost:3000/stats?stat=2")
             if not stat_from_cpp.ok:
                 return Response('Bad Response from CPP', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            return HttpResponse(stat_from_cpp.text, status=status.HTTP_200_OK)
+            return HttpResponse(stat_from_cpp.text, status=status.HTTP_200_OK, content_type="application/json")
         case "3":
             stat_from_cpp = requests.get("http://localhost:3000/stats?stat=3")
             if not stat_from_cpp.ok:
                 return Response('Bad Response from CPP', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            return HttpResponse(stat_from_cpp.text, status=status.HTTP_200_OK)
+            return HttpResponse(stat_from_cpp.text, status=status.HTTP_200_OK, content_type="application/json")
         case "4":
             stat_from_cpp = requests.get("http://localhost:3000/stats?stat=4")
             if not stat_from_cpp.ok:
                 return Response('Bad Response from CPP', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            return HttpResponse(stat_from_cpp.text, status=status.HTTP_200_OK)
+            return HttpResponse(stat_from_cpp.text, status=status.HTTP_200_OK, content_type="application/json")
     return Response("wow", status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -180,7 +180,10 @@ def settings_view(request):
 def validation_view(request):
     user_id = request.query_params['user_id']
     website = request.query_params['website']
-    user_model = User.objects.get(pk=user_id)
+    try:
+        user_model = User.objects.get(pk=user_id)
+    except:
+        return Response('First validation useless!')
 
     banned = user_model.ban_period
     if banned is not None:
@@ -191,8 +194,8 @@ def validation_view(request):
     researches_threshold = user_model.max_research
     researches_count = user_model.searches.count()
 
-    if researches_count >= researches_threshold:
-        return Response('max_research')
+    if researches_count >= researches_threshold != -1:
+        return Response('reached_max')
 
     if website == 'goldbet':
         is_enabled = Settings.objects.get(pk=1).goldbet_research
