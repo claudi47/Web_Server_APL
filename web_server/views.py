@@ -47,6 +47,9 @@ def bet_data_view(request):
                                           args=[search_instance.pk],
                                           id=str(search_instance.pk), misfire_grace_time=3600,
                                           replace_existing=True)
+            # Pausing the job to make sure that the rollback function doesn't execute during the transaction,
+            # which would invalid the transaction!
+            transaction_scheduler.pause_job(str(search_instance.pk))
             bet_data_list = request.data['data']
             for element in bet_data_list:
                 # **element passes the entire content of the dictionary where bet_data are present
@@ -55,16 +58,16 @@ def bet_data_view(request):
                     bet_data.save()
                 else:
                     try:
-                        rollback_function(search_instance.pk)
-                        transaction_scheduler.remove_job(job_id=str(search_instance.pk))
+                        # The 'reschedule_job' function will automatically resume the rollback job!
+                        transaction_scheduler.reschedule_job(str(search_instance.pk), trigger='date')
                     finally:
                         return Response('Error!', status=status.HTTP_400_BAD_REQUEST)
 
             response_from_cpp = requests.post("http://localhost:3000", json=bet_data_list)
             if not response_from_cpp.ok:
                 try:
-                    rollback_function(search_instance.pk)
-                    transaction_scheduler.remove_job(job_id=str(search_instance.pk))
+                    # The 'reschedule_job' function will automatically resume the rollback job!
+                    transaction_scheduler.reschedule_job(str(search_instance.pk), trigger='date')
                 finally:
                     return Response('Error!', status=status.HTTP_400_BAD_REQUEST)
             else:
@@ -79,8 +82,9 @@ def bet_data_view(request):
     except Exception as ex:
         try:
             search_instance.pk
+            # Here we execute the rollback function (the decorator takes care of the retry logic)
+            # Maybe, we could execute the job scheduler BEFORE the retry logic.
             rollback_function(search_instance.pk)
-            transaction_scheduler.remove_job(job_id=str(search_instance.pk))
         except:
             pass
 
@@ -167,10 +171,11 @@ def settings_view(request):
             updated_settings.goldbet_research = settings_serializer.data['bool_toggle_goldbet']
             updated_settings.bwin_research = settings_serializer.data['bool_toggle_bwin']
             updated_settings.save()
-
-        transaction_result = transaction_to_repeat()
-        return Response("Success!", status=status.HTTP_200_OK) if transaction_result else Response("Transaction error!",
-                                                                                                   status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        try:
+            transaction_to_repeat()
+            return Response('Success!')
+        except:
+            return Response('Transaction error!', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
         return Response(settings_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
